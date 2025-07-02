@@ -1,6 +1,6 @@
 ---
 title: "HW 04"
-author: "INSERT YOUR NAME HERE"
+author: "Cedric Destin"
 format:
   html:
     embed-resources: true
@@ -33,51 +33,53 @@ pacman::p_load(tidyverse,
                stringr,
                ggplot2,
                tigris,
-               sf) 
+               sf,
+               RColorBrewer,
+               patchwork) 
 ```
 
 ## 1 - A second chance
 
-```{r}
+```{r Redoing_HW2_Q5}
 #| label: label-me-1
 ggplot(penguins, aes(x = bill_length_mm, y = body_mass_g, color = species)) +
   geom_point(size=25)+
   theme(plot.background = element_rect(fill = "yellow"),
       panel.background = element_rect(fill = "green"),
-      axis.title.x = element_text(colour = "red", size = 20),
-      axis.title.y = element_text(colour = "blue", size = 20),
+      axis.title.x = element_text(colour = "red", size = 10),
+      axis.title.y = element_text(colour = "blue", size = 10),
       axis.text.x = element_text(color = "purple", 
-        size =20, 
+        size =10, 
         face=c("bold","plain")
         ),
       axis.text.y = element_text(color = "orange", 
-        size =20, 
+        size =10, 
         face=c("bold","plain")
         ),
-        plot.title = element_text(size = 30),
-        legend.text = element_text(size=15),
-        legend.title = element_text(size = 20, face = "bold")
+        plot.title = element_text(size = 15),
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold")
       ) + 
   labs(title = "Penguins body mass vs bill length by species")
 ```
 
-```{r}
+```{r Redoing_HW2_Q5_2}
 ggplot(penguins, aes(x = bill_length_mm, y = body_mass_g, color = species)) +
   geom_point(size = 8)+
   theme(
   #     panel.background = element_rect(fill = "green"),
-      axis.title.x = element_text(size = 20),
-      axis.title.y = element_text(size = 20),
+      axis.title.x = element_text(size = 10),
+      axis.title.y = element_text(size = 10),
       axis.text.x = element_text(
-        size =20, 
+        size =10, 
         face=c("bold","plain")
         ),
       axis.text.y = element_text( 
-        size =15, 
+        size =8, 
         face=c("bold","plain")
         ),
-        plot.title = element_text(size = 30),
-        legend.text = element_text(size=15),
+        plot.title = element_text(size = 15),
+        legend.text = element_text(size=10),
         legend.title = element_text(size = 12, face = "bold")
       ) + 
   labs(title = "Penguins body mass vs bill length by species")
@@ -85,14 +87,14 @@ ggplot(penguins, aes(x = bill_length_mm, y = body_mass_g, color = species)) +
 
 ## 2. Arizona state of counties
 
-```{r}
+```{r Bringing_in_counties}
 #| label: label-me-2
 az_counties <- counties(state = "AZ",
                         year = 2021,
                         progress_bar = FALSE)
 ```
 
-```{r}
+```{r Transforming_counties}
 az_counties_centroids <- az_counties %>%
   sf::st_centroid() %>%
   dplyr::mutate(
@@ -101,13 +103,13 @@ az_counties_centroids <- az_counties %>%
   )
 ```
 
-```{r}
+```{r Creating_plot}
 ggplot(az_counties) +
   geom_sf() +
   geom_label_repel(
     data = az_counties_centroids,
     aes(x = lon, y = lat, label = NAME),
-    size = 12,
+    size = 3,
     fill = "white",
     color = "black",
     label.size = 0.7,
@@ -121,68 +123,66 @@ ggplot(az_counties) +
   labs(title = "Counties in Arizona",
   x = "Longitude", y = "Latitude", caption = "Source: Shapefile obtained using {tigris} R package, v2.0.1") +
   theme(
-    plot.title = element_text(hjust = 0.5, size = 40),
-    plot.caption = element_text(hjust = 0.5, size = 24),
-    axis.title.x = element_text(size = 30),
-    axis.title.y = element_text(size = 30),
-    axis.text.x = element_text(size = 24),
-    axis.text.y = element_text(size = 24)
+    plot.title = element_text(hjust = 0.5, size = 16),
+    plot.caption = element_text(hjust = 0.5, size = 8),
+    axis.title.x = element_text(size = 11),
+    axis.title.y = element_text(size = 11),
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8)
   )
 ```
 
 ## 3. Arizona state of population change
 
-```{r}
+```{r bringing_pop_change}
 #| label: label-me-3
 
-total_pop_change_20_23 <- readxl::read_excel(here("data", "co-est2023-pop-04.xlsx"), skip = 4) %>%
-  dplyr::select(1:20)
+total_pop_change_20_23 <- readxl::read_excel(here("data", "co-est2023-pop-04.xlsx"), skip = 4, n_max = 15)
 colnames(total_pop_change_20_23)[1:6] <- c("county", "estimate", "2020", "2021", "2022", "2023")
 
 ```
 
-```{r}
+```{r calculate_change}
 total_pop_change_20_23 <-total_pop_change_20_23 %>%
   mutate(
-    change = `2022` - `2021`,
-    Name = stringr::str_extract(county, "(?<=\\.)[A-Za-z]+")
+    change = `2023` - `2020`,
+    NAME = str_remove(county, "^\\.") %>%                   # Remove leading dot
+           str_remove(" County, Arizona$") %>%              # Remove ' County, Arizona' at the end
+           str_trim()   
   )
 ```
 
-```{r}
-az_counties_pop <- left_join(az_counties, total_pop_change_20_23, by = "Name")
+```{r joining}
+az_counties_pop <- left_join(az_counties, total_pop_change_20_23, by = "NAME")
 ```
 
-```{r}
+```{r plotting_pop_change}
 ggplot(az_counties_pop) + 
   geom_sf(aes(fill = change)) +
   scale_fill_distiller(palette = "RdBu",
-    breaks = c(0, 25000, 50000),
-    labels = c("0", "25,000", "50,000")) + 
+    breaks = c(0, 50000, 100000),
+    labels = c("0", "50,000", "100,000")) + 
   theme_minimal() +
   labs(fill = "Population change", 
   title = "Resident Population Change for Counties in AZ", 
   subtitle = " July 1, 2020 to July 01, 2022",
   x = "Longitude", y = "Latitude", caption = "Source: Shapefile obtained using {tigris} R package, v2.0.1 \n population change data from the US Census Bureau") +
   theme(
-    plot.title = element_text(hjust = 0.5, size = 30),
-    plot.subtitle = element_text(hjust = 0.5, size = 24),
-    legend.title = element_text(hjust = 0.5, size = 17),
-    legend.text = element_text(hjust = 0.5, size = 15),
-    plot.caption = element_text(hjust = 0.5, size = 24),
-    axis.title.x = element_text(size = 30),
-    axis.title.y = element_text(size = 30),
-    axis.text.x = element_text(size = 24),
-    axis.text.y = element_text(size = 24)
+    plot.title = element_text(hjust = 0.5, size = 15),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    legend.title = element_text(hjust = 0.5, size = 8),
+    legend.text = element_text(hjust = 0.5, size = 8),
+    plot.caption = element_text(hjust = 0.5, size = 12),
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12)
   ) 
-
-
-
 ```
 
 ## 4. Arizona state of Indiginous Tribal Regions
 
-```{r}
+```{r transforming_coordinates}
 tribal_regions <- sf::st_read(here("data", "American_Indian_Reservations_in_Arizona.shp")) |>
     st_transform(crs = st_crs("EPSG:4269")) |>
     mutate(
@@ -192,7 +192,7 @@ tribal_regions <- sf::st_read(here("data", "American_Indian_Reservations_in_Ariz
 
 ```
 
-```{r}
+```{r plotting_regions}
 tribe_names <- c("Hopi Tribe", 
                            "Navajo Nation", 
                            "White Mountain Apache Tribe", 
@@ -206,7 +206,7 @@ geom_sf(
 
 geom_sf(
     data = tribal_regions, 
-    linewidth = 2, 
+    linewidth = 1, 
     fill = NA, 
     color = "black"
 ) +
@@ -215,7 +215,7 @@ geom_label_repel(
     data = tribal_regions |>     
         filter(NAME %in% (tribe_names)),
     aes(x = x, y = y, label = NAME),
-    size = 12,
+    size = 4,
     fill = "white",
     color = "black",
     label.size = 0.7,
@@ -232,16 +232,140 @@ labs(
     y = "Latitude"
 )   +
   theme(
-    plot.title = element_text(hjust = 0.5, size = 40),
-    plot.caption = element_text(hjust = 0.5, size = 24),
-    axis.title.x = element_text(size = 30),
-    axis.title.y = element_text(size = 30),
-    axis.text.x = element_text(size = 24),
-    axis.text.y = element_text(size = 24)
+    plot.title = element_text(hjust = 0.5, size = 15),
+    plot.caption = element_text(hjust = 0.5, size = 10),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10)
   )
 ```
 
 ## 5. Arizona state of patchwork
-```{r}
+```{r saving_palettes}
+palette <- rev(brewer.pal(5, "RdBu"))
+```
 
+```{r creating_boundaries_and_lines}
+boundaries <- data.frame(x_start = c(-113.5, -113),
+                          y_start = c(32, 31.5),
+                          x_end = c(-122, -116.75),
+                          y_end = c(32.75, 28))
+lines <-  data.frame(x_start_line = c(-113.5, -113),
+                          y_start_line = c(32, 31.5),
+                          x_end_line = c(-116, -116),
+                          y_end_line = c(32.75, 28))                         
+```
+
+```{r plot_state}
+arizona <- ggplot(az_counties_pop) +
+  geom_sf(aes(fill = change))  +
+    scale_fill_gradientn(
+        colors = palette,
+        name = "Population change",
+        breaks = c(0, 50000, 100000),                # Only show these values in the legend
+        labels = c("0", "50,000", "100,000"),
+        guide = guide_colorbar(barwidth = 9,
+                               barheight = 1,
+                               direction = "horizontal",
+                               title.position = "top")
+    ) +
+
+    geom_label_repel(
+    data = filter(az_counties_centroids, NAME %in% c("Pinal", 
+                       "Maricopa", 
+                       "Pima")),
+    aes(x = lon, y = lat, label = NAME),
+    size = 3,
+    fill = "white",
+    color = "black",
+    label.size = 0.7,
+    segment.color = "black",
+    segment.size = 1, 
+    box.padding = 1,
+    point.padding = 0.8,
+    max.overlaps = Inf
+  ) +
+
+    geom_segment(
+        data = lines,
+        aes(x = x_start_line, 
+            y = y_start_line, 
+            xend = x_end_line, 
+            yend = y_end_line),
+        color = "black", 
+        linetype = "dashed", 
+        linewidth = 0.5
+    ) +
+  coord_sf(xlim = c(-122, -108)) +
+  theme(
+    legend.position = c(0.25, 0.85)
+  ) + labs(
+    title = "Resident Population Change for Counties in Arizona",
+    subtitle = "July 1, 2020 to July 01, 2023",
+    caption = "Source: Shapefile obtained using {tigris} R package, v2.2.1\nPopulation change data from the US Census Bureau\nIndigenous Tribe Shapefile obtained from AZGeo Data",
+    x = "Longitude",
+    y = "Latitude"
+)
+```
+
+```{r plot_tribes}
+tribal_regions_filter <- tribal_regions %>%
+    filter(NAME %in% c("White Mountain Apache Tribe", 
+                       "San Carlos Apache Tribe", 
+                       "Tohono O’odham Nation"))
+tribes <- ggplot() +
+    geom_sf(
+        data = filter(az_counties_pop, 
+                      NAME %in% c("Maricopa", 
+                                  "Pinal", 
+                                  "Pima", 
+                                  "Santa Cruz", 
+                                  "Gila", 
+                                  "Yavapai")), 
+        aes(fill = change)
+    ) +
+    scale_fill_gradientn(
+        colors = palette,
+        name = "Population change",
+        labels = function(x) format(x, big.mark = ","),
+        guide = guide_colorbar(barwidth = 9,
+                               barheight = 1,
+                               direction = "horizontal",
+                               title.position = "top")
+    ) + 
+    geom_sf(
+        data = tribal_regions_filter, 
+        fill = NA, 
+        color = "black", 
+        linewidth = 1
+    )  +
+    geom_label_repel(
+        data = tribal_regions_filter,
+        aes(x = x, 
+            y = y, 
+            label = NAME),
+        size = 1.5, 
+        box.padding = 0.5, 
+        min.segment.length = 0
+    ) +
+    theme(
+        panel.background = element_rect(fill = "grey90", color = NA), 
+        plot.background = element_rect(fill = "grey90", color = NA),
+        axis.title = element_blank(), 
+        axis.text = element_blank(),    
+        axis.ticks = element_blank(),    
+        panel.grid = element_blank(),    
+        legend.position = "none"
+    ) +
+    theme(legend.position = "none") 
+```
+```{r patch}
+patch_map <- arizona + inset_element(tribes, 
+                                      left = -0.25, 
+                                      right = 1.0, 
+                                      bottom = -0.0, 
+                                      top = 0.5)
+
+patch_map
 ```
