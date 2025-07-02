@@ -131,6 +131,9 @@ ggplot(az_counties) +
     axis.text.y = element_text(size = 8)
   )
 ```
+Sources: 
+https://postgis.net/docs/ST_Centroid.html
+https://ggplot2.tidyverse.org/reference/ggsf.html
 
 ## 3. Arizona state of population change
 
@@ -146,8 +149,8 @@ colnames(total_pop_change_20_23)[1:6] <- c("county", "estimate", "2020", "2021",
 total_pop_change_20_23 <-total_pop_change_20_23 %>%
   mutate(
     change = `2023` - `2020`,
-    NAME = str_remove(county, "^\\.") %>%                   # Remove leading dot
-           str_remove(" County, Arizona$") %>%              # Remove ' County, Arizona' at the end
+    NAME = str_remove(county, "^\\.") %>% 
+           str_remove(" County, Arizona$") %>%
            str_trim()   
   )
 ```
@@ -179,6 +182,9 @@ ggplot(az_counties_pop) +
     axis.text.y = element_text(size = 12)
   ) 
 ```
+Sources:
+https://stringr.tidyverse.org/reference/str_remove.html
+Github Copilot: to fix legend numbers
 
 ## 4. Arizona state of Indiginous Tribal Regions
 
@@ -240,6 +246,8 @@ labs(
     axis.text.y = element_text(size = 10)
   )
 ```
+Sources:
+Weston Scott helped the st_transform to transform the coordinates to the correct CRS (EPSG:4269) for the tribal regions shapefile.
 
 ## 5. Arizona state of patchwork
 ```{r saving_palettes}
@@ -263,7 +271,7 @@ arizona <- ggplot(az_counties_pop) +
     scale_fill_gradientn(
         colors = palette,
         name = "Population change",
-        breaks = c(0, 50000, 100000),                # Only show these values in the legend
+        breaks = c(0, 50000, 100000),
         labels = c("0", "50,000", "100,000"),
         guide = guide_colorbar(barwidth = 9,
                                barheight = 1,
@@ -369,3 +377,9 @@ patch_map <- arizona + inset_element(tribes,
 
 patch_map
 ```
+
+Sources:
+https://ggplot2.tidyverse.org/reference/geom_segment.html
+https://stackoverflow.com/questions/77159657/inset-element-from-patchwork-is-flipping-the-inset-upside-down
+https://www.youtube.com/watch?v=BzWSliKN-0c
+https://patchwork.data-imaginist.com/reference/inset_element.html
